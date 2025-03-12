@@ -1,65 +1,92 @@
+from multiprocessing.connection import wait
 import yt_dlp
 import os
 import re
+import tkinter as tk 
+from tkinter import filedialog
+
+FORMATS=["mp3", "mp4", "webm", "mkv"]
 
 def sanitize_filename(filename):
-    """Remove caracteres inválidos para nomes de arquivos."""
+    #Remove caracteres inválidos para nomes de arquivos.
     return re.sub(r'[\/:*?"<>|]', '_', filename)
 
 def download_and_convert(url, save_path, format):
+    # Configuração do yt-dlp
     ydl_opts = {
-        'outtmpl': f"{save_path}/%(title)s.%(ext)s",  
-        'format': 'bestvideo+bestaudio/best',  
-        'merge_output_format': 'mkv' 
+        'outtmpl': f"{save_path}/%(title)s.%(ext)s",
+        'format': 'bestaudio' if format == "mp3" else (
+            'bestvideo[ext=webm]+bestaudio[ext=webm]/best' if format == "webm" else 'bestvideo+bestaudio/best'
+        ),
+        'merge_output_format': format if format != "webm" else None,  # WebM precisa de conversão manual
+        'postprocessors': [{
+            'key': 'FFmpegVideoConvertor',
+            'preferedformat': format
+        }] if format != "webm" else [],
     }
 
-    # Baixar o vídeo
+    # Baixar o vídeo/áudio
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=True)
-        downloaded_file = ydl.prepare_filename(info_dict)  
-        downloaded_file = downloaded_file.replace('.webm', '.mkv')
+        downloaded_file = ydl.prepare_filename(info_dict)
 
-    # Verifica se o arquivo realmente existe antes de continuar
-    if not os.path.exists(downloaded_file):
+    print(f"\n \n \n PRIMEIRO DOWNLOAD SALVO COMO: {downloaded_file} \n \n \n ")
+
+    '''if not os.path.exists(downloaded_file):
         print(f"Erro: Arquivo {downloaded_file} não encontrado!")
-        return
+        return'''
 
-    match format:
+    # Se o formato for WebM e não estiver em WebM, converter
+    if format == "webm" and not downloaded_file.endswith(".webm"):
+        webm_file = downloaded_file.rsplit(".", 1)[0] + ".webm"
+        os.system(f'ffmpeg -i "{downloaded_file}" -c:v libvpx-vp9 -c:a libopus "{webm_file}"')
+        os.remove(downloaded_file)  # Apaga o original após converter
+        print(f"Conversão concluída! Arquivo salvo como: {webm_file}")
 
-        case "mp4":
-            # Criar nome do MP4
-            mp4_file = downloaded_file.replace('.mkv', '.mp4')
 
-            # Converter para MP4
-            os.system(f'ffmpeg -i "{downloaded_file}" -c:v copy -c:a copy "{mp4_file}"')
+    print(f"Download concluído! Arquivo salvo como: {downloaded_file}")
+    print("Processo finalizado! ✅")
 
-            # Remover o arquivo MKV original
-            os.remove(downloaded_file)
-
-            print(f"Download e conversão concluídos! Arquivo salvo como: {mp4_file}")
-        
-        case "mp3":
-            # Criar nome do MP3
-            mp3_file = downloaded_file.replace('.mkv', '.mp3')
-
-            # Converter para MP3
-            os.system(f'ffmpeg -i "{downloaded_file}" -q:a 0 -map a "{mp3_file}"')
-
-            # Remover o arquivo MKV original
-            os.remove(downloaded_file)
-
-            print(f"Download e conversão concluídos! Arquivo salvo como: {mp3_file}")
 
     
+def open_file_dialogue():
+    folder= filedialog.askdirectory()
+    if folder:
+        print(f"Selected folder: {folder}")
+    return folder
 
 
-while True:
-    url = input("Enter the link or URL of the YT video: ")
-    save_path = input("Now enter the path to save the video: ")
-    format= input("Enter the desired format (mp3, mp4...): ")
+if __name__ == "__main__":
+    root=tk.Tk()
+    root.withdraw()
 
-    download_and_convert(url, save_path, format)
-    answer =input("Press 'q' to quit: ")
-    if answer == "q":
-        break
+    while True:
+        url = input("Enter the link or URL of the YT video: ")
+        while True:  
+            format= input("Enter the desired format (mp3, mp4, mkv or webm): ")
+            if format.lower() == "exit":
+                exit()
+            if format.lower() in FORMATS:
+                break
+            else:
+                print("Format not available.\n If you want to continue please choose between mp3, mp4, mkv or webm.\n If not type 'exit'")
+
+        save_dir = open_file_dialogue()
+        if save_dir:
+            download_and_convert(url, save_dir, format.lower())
+        else:
+            print("Invalid save location.")
+        while True:  
+            ans = input("Want to download more? (y/n): ")
+            match ans.lower():  # Converte para minúsculas para simplificar
+                case "y":
+                    break 
+                case "n":
+                    exit()  
+                case _:
+                    print("Invalid response. Please enter 'y' for yes or 'n' for no.\n")
+        
+
+
+
 
