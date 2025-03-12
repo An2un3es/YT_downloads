@@ -50,15 +50,17 @@ def download_and_convert(url, save_path, format):
 
     
 def open_file_dialogue():
+    root = tk.Tk()
+    root.withdraw()  # Esconde a janela principal
+
     folder= filedialog.askdirectory()
+
     if folder:
         print(f"Selected folder: {folder}")
     return folder
 
 
 if __name__ == "__main__":
-    root=tk.Tk()
-    root.withdraw()
 
     while True:
         url = input("Enter the link or URL of the YT video: ")
