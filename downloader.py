@@ -5,7 +5,7 @@ from tkinter import messagebox
 def download_and_convert(url, save_path, format):
     if not url or not save_path or not format:
         messagebox.showerror("Error", "Fill every field")
-        return
+        return False
     
     ydl_opts = {
         'outtmpl': f"{save_path}/%(title)s.%(ext)s",
@@ -23,5 +23,7 @@ def download_and_convert(url, save_path, format):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         messagebox.showinfo("Success", "Download finished!")
+        return True
     except Exception as e:
         messagebox.showerror("Error", f"Download failed: {e}")
+        return False

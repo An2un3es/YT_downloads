@@ -10,6 +10,17 @@ def select_folder():
     if folder_selected:
         folder_var.set(folder_selected)
 
+def start_download():
+    url = url_entry.get()
+    folder = folder_var.get()
+    format = format_var.get()
+    
+    # If download is successfull clears all fields
+    if download_and_convert(url, folder, format):  
+        url_entry.delete(0, tk.END)  
+        folder_var.set("")  
+        format_var.set("")  
+
 # Create main window
 root = tk.Tk()
 root.title("YouTube Downloader")
@@ -32,7 +43,7 @@ format_menu = ttk.Combobox(root, textvariable=format_var, values=FORMATS, state=
 format_menu.pack()
 
 # Download Button
-tk.Button(root, text="Download", command=lambda: download_and_convert(url_entry.get(), folder_var.get(), format_var.get())).pack()
+tk.Button(root, text="Download", command=start_download).pack()
 
 
 # Center window
